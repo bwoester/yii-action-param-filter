@@ -140,8 +140,45 @@ class ActionParam extends CComponent
    */
   public function getValue()
   {
-    $aSource  = $this->getSourceArray( $this->getSource() );
-    return $aSource[ $this->name ];
+    $retVal = null;
+
+    switch ($this->getSource())
+    {
+    case self::SRC_COOKIE:
+        $retVal = $_COOKIE[ $this->name ];
+        break;
+    case self::SRC_ENV:
+        $retVal = $_ENV[ $this->name ];
+        break;
+    case self::SRC_FILES:
+        $retVal = $_FILES[ $this->name ];
+        break;
+    case self::SRC_GET:
+        $retVal = $_GET[ $this->name ];
+        break;
+    case self::SRC_POST:
+        $retVal = $_POST[ $this->name ];
+        break;
+    case self::SRC_REQUEST:
+        $retVal = $_REQUEST[ $this->name ];
+        break;
+    case self::SRC_SERVER:
+        $retVal = $_SERVER[ $this->name ];
+        break;
+    case self::SRC_SESSION:
+        $retVal = $_SESSION[ $this->name ];
+        break;
+    case self::SRC_PUT:
+        $retVal = Yii::app()->request->getPut( $this->name );
+        break;
+    case self::SRC_DELETE:
+        $retVal = Yii::app()->request->getDelete( $this->name );
+        break;
+    default:
+        throw new CException( "Unknown source for action params '{$this->source}'." );
+    }
+
+    return $retVal;
   }
 
   private function inSource( $sourceName )
