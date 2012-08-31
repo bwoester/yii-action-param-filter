@@ -10,89 +10,158 @@ class ActionParam extends CComponent
   const SRC_SESSION   = 'SESSION';
   const SRC_ENV       = 'ENV';
   const SRC_COOKIE    = 'REQUEST';
-  
-  public $name = '';
-  private $_source  = '';
-  
-  private $_valid = true;
-  private $_actionParams = array();
 
-  public function getSource() {
+  /**
+   * Name of the action paramter.
+   * @var string
+   */
+  public $name = '';
+
+  /**
+   * Array of possible sources from which the action parameter might be read.
+   * @var array
+   */
+  private $_aAllowedSources  = array();
+
+  /**
+   * The source that is used to read the action parameter. The first possible
+   * source that contains the name of the action parameter will be used.
+   * @var string
+   */
+  private $_source  = '';
+
+  /**
+   * Looks for the parameter in all possible sources. Returns the name of the
+   * first source that contains the parameter.
+   * @return string
+   */
+  public function getSource()
+  {
+    if ($this->_source === '')
+    {
+      foreach ($this->_aAllowedSources as $allowedSource)
+      {
+        $aSource = $this->getSourceArray( $allowedSource );
+        if (array_key_exists($this->name,$aSource))
+        {
+          $this->_source = $allowedSource;
+        }
+      }
+    }
+
     return $this->_source;
   }
-  
-  public function setSource( $value ) {
-    $this->_source = strtoupper($value);
+
+  /**
+   * Set allowed sources.
+   *
+   * Provide a string of one or more source from which the action parameter can
+   * be read. Separate multiple source names with comma ",". The source names
+   * will be converted to upper case for internal usage.
+   *
+   * @param string $value
+   */
+  public function setSource( $value )
+  {
+    $aAllowedSources = explode( ',', $value );
+    foreach ($aAllowedSources as $allowedSource) {
+      $this->_aAllowedSources[] = trim( strtoupper($allowedSource) );
+    }
   }
-  
-  private function isValid() {
-    return $this->_valid;
-  }
-  
-  private function setValid( $value ) {
-    $this->_valid = $value;
-  }
-  
-  private function getActionParams() {
-    return $this->_actionParams;
-  }
-  
-  private function setActionParams( array $value ) {
-    $this->_actionParams = $value;
-  }
-  
+
+  /**
+   * Validate the action parameter.
+   *
+   * The parameter will only be validated if it is included in $actionParams.
+   * If it is not included in $actionParams, it means the user didn't submit
+   * the parameter with his request, so there is nothing to validate.
+   *
+   * If the parameter is included in $actionParams, we make sure that the
+   * parameter is also included in the source array. The source array is the
+   * first array in the list of allowed sources that contains the parameter.
+   *
+   * For example, let's assume an action parameter with the config
+   *
+   * array(
+   *   'name'   => 'foo',
+   *   'source' => 'get'
+   * ),
+   *
+   * If the current controller merges $_GET and $_POST arrays to provide action
+   * parameters, and 'foo' is in $actionParams, it is clear that it originates
+   * from $_GET or $_POST. But since the configuration of the param only allows
+   * it to originate from get, we validate that $_GET['foo'] exists.
+   *
+   * If this test passes, we validate that $actionParams['foo'] and
+   * $_GET['foo'] are equal. This is important, because we need to make sure
+   * that nobody injected a 'foo' variable in $_POST data (we don't know which
+   * order the controller uses to merge the arrays).
+   *
+   * @param array $actionParams. The array that will be used by CAction to
+   * populate parameters for its invokation.
+   * @return boolean. Validation result.
+   */
   public function validate( array $actionParams )
   {
     // we don't need to validate what isn't provided
     if (!array_key_exists($this->name,$actionParams)) {
       return true;
     }
-    
-    $this->setActionParams( $actionParams );
-    
-    $this->validateParamExistsInSourceArray();
-    $this->validateEquality();
 
-    return $this->isValid();
+    $valid      = true;
+    $aSource    = array();
+    $sourceName = $this->getSource();
+
+    // parameter was not found in the list of allowed sources --> invalid
+    if ($sourceName === '')
+    {
+      $valid = false;
+    }
+    else
+    {
+      // validate that the parameter exists in source array
+      $aSource = $this->getSourceArray( $sourceName );
+      $valid = array_key_exists( $this->name, $aSource );
+    }
+
+    // if the validation passed, validate equality
+    if ($valid)
+    {
+      $valid = $actionParams[$this->name] === $aSource[$this->name];
+    }
+
+    return $valid;
   }
 
   /**
-   * Ensure that the param exists in the source array.
-   * @return void
+   * Check if the action parameter is provided in the current request.
+   * Only take allowed sources into account.
+   * @return bool
    */
-  private function validateParamExistsInSourceArray()
+  public function provided()
   {
-    if (!$this->isValid()) {
-      return;
-    }
-    
-    $src = $this->getSourceArray();
-    $this->setValid( array_key_exists($this->name,$src) );
+    return $this->getSource() !== '';
   }
 
   /**
-   * Ensure that the param returned by getActionParams is the same as the param
-   * from the source array. This way, we can make sure that nobody 
-   * @return void
+   * Get the value of a provided action parameter from the first allowed
+   * source.
+   *
+   * Only call this method if you are sure the parameter is provided!
+   *
+   * @return mixed
    */
-  private function validateEquality()
+  public function getValue()
   {
-    if (!$this->isValid()) {
-      return;
-    }
-    
-    $src          = $this->getSourceArray();
-    $actionParams = $this->getActionParams();
-    $name         = $this->name;
-    
-    $this->setValid( $src[$name] === $actionParams[$name] );
+    $aSource  = $this->getSourceArray( $this->getSource() );
+    return $aSource[ $this->name ];
   }
-  
-  private function getSourceArray()
+
+  private function getSourceArray( $sourceName )
   {
     $retVal = array();
-    
-    switch ($this->getSource())
+
+    switch ($sourceName)
     {
     case self::SRC_COOKIE:
         $retVal = $_COOKIE;
@@ -121,7 +190,7 @@ class ActionParam extends CComponent
     default:
         throw new CException( "Unknown source for action params '{$this->source}'." );
     }
-    
+
     return $retVal;
   }
 }

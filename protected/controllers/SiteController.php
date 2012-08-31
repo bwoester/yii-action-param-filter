@@ -20,24 +20,25 @@ class SiteController extends Controller
 			),
 		);
 	}
-  
+
   public function filters()
   {
     return array(
       array(
         'ext.actionParamFilter.ActionParamFilter',
-        'params' => array(
+        'provideActionParams' => true,
+        'actionParams' => array(
           'contact' => array(
             'ContactForm' => array( 'source' => 'post' ),
           ),
           'login' => array(
             'ajax'      => array( 'source' => 'post' ),
-            'LoginForm' => array( 'source' => 'post' ),
+            'LoginForm' => array( 'source' => 'get,post' ),
           ),
         ),
       ),
     );
-  }  
+  }
 
 	/**
 	 * This is the default 'index' action that is invoked
@@ -67,13 +68,14 @@ class SiteController extends Controller
 	/**
 	 * Displays the contact page
 	 */
-	public function actionContact()
+	public function actionContact( array $ContactForm=array() )
 	{
 		$model=new ContactForm;
-		if(isset($_POST['ContactForm']))
+		if (!empty($ContactForm))
 		{
-			$model->attributes=$_POST['ContactForm'];
-			if($model->validate())
+			$model->attributes = $ContactForm;
+
+			if ($model->validate())
 			{
 				$name='=?UTF-8?B?'.base64_encode($model->name).'?=';
 				$subject='=?UTF-8?B?'.base64_encode($model->subject).'?=';
@@ -87,6 +89,7 @@ class SiteController extends Controller
 				$this->refresh();
 			}
 		}
+
 		$this->render('contact',array('model'=>$model));
 	}
 
@@ -108,13 +111,13 @@ class SiteController extends Controller
 		if (!empty($LoginForm))
 		{
 			$model->attributes = $LoginForm;
-      
+
 			// validate user input and redirect to the previous page if valid
 			if ($model->validate() && $model->login()) {
 				$this->redirect( Yii::app()->user->returnUrl );
       }
 		}
-    
+
 		// display the login form
 		$this->render('login',array('model'=>$model));
 	}

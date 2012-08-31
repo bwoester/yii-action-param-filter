@@ -20,7 +20,14 @@ class Controller extends CController
 	 * for more details on how to specify this property.
 	 */
 	public $breadcrumbs=array();
-  
+
+	public function behaviors()
+	{
+		return array(
+      'instanceof' => array( 'class' => 'ext.InstanceofBehavior' ),
+    );
+	}
+
   /**
    * Returns the request parameters that will be used for action parameter binding.
    * By default, this method will return $_GET. You may override this method if you
@@ -30,16 +37,19 @@ class Controller extends CController
    */
   public function getActionParams()
   {
-//    $event = new CEvent( $this, array() );
-//    $this->onGetActionParams( $event );
-//    return isset($event->params['actionParams'])
-//      ? $event->params['actionParams']
-//      : parent::getActionParams();
-    return array_merge( $_POST, $_GET );
+    $aActionParams = array();
+
+    if (($actionParamProvider=$this->getInstanceof($this,'IActionParamProvider')) !== false)
+    {
+       /* @var $actionParamProvider IActionParamProvider */
+      $aActionParams = $actionParamProvider->provideActionParams();
+    }
+    else
+    {
+      $aActionParams = parent::getActionParams();
+    }
+
+    return $aActionParams;
   }
-  
-  public function onGetActionParams( $event )
-  {
-    $this->raiseEvent( 'onGetActionParams', $event );
-  }
+
 }
