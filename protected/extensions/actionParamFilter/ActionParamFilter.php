@@ -43,6 +43,37 @@ Yii::import( '_actionParamFilter.IActionParamProvider', true );
  *     );
  *   }
  *
+ *   // But the same action could also be reused by a REST client, that tries
+ *   // to issue a DELETE request. This filter configuration could now look
+ *   // like the following to require the delete action to be
+ *   // 1) a DELETE
+ *   // 2) to http://doma.in/index.php?r=model/delete&id=123
+ *   //    (=== http://doma.in/index.php/model/123, if formatted by CUrlManager)
+ *   // 3) since I've never written a rest client, I have no idea how they
+ *   //    handle redirects, so I ignore this param...
+ *   public function restFilters()
+ *   {
+ *     return array(
+ *       'deleteOnly + delete',
+ *       array(
+ *         'class'  => 'ext.filters.actionParamFilter.ActionParamFilter',
+ *         'params' => array(
+ *           'delete' => array(
+ *             'id' => array( 'source' => 'delete' ),
+ *           ),
+ *         ),
+ *       ),
+ *     );
+ *   }
+ *
+ *   public function filterDeleteOnly($filterChain)
+ *   {
+ *     if(Yii::app()->getRequest()->getIsDeleteRequest())
+ *       $filterChain->run();
+ *     else
+ *       throw new CHttpException(400,Yii::t('yii','Your request is invalid.'));
+ *   }
+ *
  *   // Now, with the ActionParamFilter, we don't need to know where the
  *   // parameters come from. This is ideal for CAction instances that might
  *   // be reused in several controlers.
