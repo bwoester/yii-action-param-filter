@@ -2,6 +2,10 @@
 
 class ActionParam extends CComponent
 {
+
+  /////////////////////////////////////////////////////////////////////////////
+
+  // recognized sources for action parameters - START
   const SRC_SERVER    = 'SERVER';
   const SRC_GET       = 'GET';
   const SRC_POST      = 'POST';
@@ -12,6 +16,9 @@ class ActionParam extends CComponent
   const SRC_SESSION   = 'SESSION';
   const SRC_ENV       = 'ENV';
   const SRC_COOKIE    = 'REQUEST';
+  // recognized sources for action parameters - END
+
+  /////////////////////////////////////////////////////////////////////////////
 
   /**
    * Name of the action paramter.
@@ -19,11 +26,15 @@ class ActionParam extends CComponent
    */
   public $name = '';
 
+  /////////////////////////////////////////////////////////////////////////////
+
   /**
    * Array of possible sources from which the action parameter might be read.
    * @var array
    */
   private $_aAllowedSources  = array();
+
+  /////////////////////////////////////////////////////////////////////////////
 
   /**
    * The source that is used to read the action parameter. The first possible
@@ -31,6 +42,8 @@ class ActionParam extends CComponent
    * @var string
    */
   private $_source  = '';
+
+  /////////////////////////////////////////////////////////////////////////////
 
   /**
    * Looks for the parameter in all possible sources. Returns the name of the
@@ -52,6 +65,8 @@ class ActionParam extends CComponent
     return $this->_source;
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+
   /**
    * Set allowed sources.
    *
@@ -68,6 +83,8 @@ class ActionParam extends CComponent
       $this->_aAllowedSources[] = trim( strtoupper($allowedSource) );
     }
   }
+
+  /////////////////////////////////////////////////////////////////////////////
 
   /**
    * Validate the action parameter.
@@ -120,6 +137,8 @@ class ActionParam extends CComponent
     return $valid;
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+
   /**
    * Check if the action parameter is provided in the current request.
    * Only take allowed sources into account.
@@ -129,6 +148,8 @@ class ActionParam extends CComponent
   {
     return $this->getSource() !== '';
   }
+
+  /////////////////////////////////////////////////////////////////////////////
 
   /**
    * Get the value of a provided action parameter from the first allowed
@@ -181,6 +202,8 @@ class ActionParam extends CComponent
     return $retVal;
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+
   private function inSource( $sourceName )
   {
     $retVal = false;
@@ -224,40 +247,6 @@ class ActionParam extends CComponent
     return $retVal;
   }
 
-  private function getSourceArray( $sourceName )
-  {
-    $retVal = array();
+  /////////////////////////////////////////////////////////////////////////////
 
-    switch ($sourceName)
-    {
-    case self::SRC_COOKIE:
-        $retVal = $_COOKIE;
-        break;
-    case self::SRC_ENV:
-        $retVal = $_ENV;
-        break;
-    case self::SRC_FILES:
-        $retVal = $_FILES;
-        break;
-    case self::SRC_GET:
-        $retVal = $_GET;
-        break;
-    case self::SRC_POST:
-        $retVal = $_POST;
-        break;
-    case self::SRC_REQUEST:
-        $retVal = $_REQUEST;
-        break;
-    case self::SRC_SERVER:
-        $retVal = $_SERVER;
-        break;
-    case self::SRC_SESSION:
-        $retVal = $_SESSION;
-        break;
-    default:
-        throw new CException( "Unknown source for action params '{$this->source}'." );
-    }
-
-    return $retVal;
-  }
 }
