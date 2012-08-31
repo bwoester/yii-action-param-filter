@@ -5,6 +5,8 @@ class ActionParam extends CComponent
   const SRC_SERVER    = 'SERVER';
   const SRC_GET       = 'GET';
   const SRC_POST      = 'POST';
+  const SRC_PUT       = 'PUT';
+  const SRC_DELETE    = 'DELETE';
   const SRC_FILES     = 'FILES';
   const SRC_REQUEST   = 'REQUEST';
   const SRC_SESSION   = 'SESSION';
@@ -41,9 +43,7 @@ class ActionParam extends CComponent
     {
       foreach ($this->_aAllowedSources as $allowedSource)
       {
-        $aSource = $this->getSourceArray( $allowedSource );
-        if (array_key_exists($this->name,$aSource))
-        {
+        if ($this->inSource($allowedSource)) {
           $this->_source = $allowedSource;
         }
       }
@@ -108,26 +108,13 @@ class ActionParam extends CComponent
       return true;
     }
 
-    $valid      = true;
-    $aSource    = array();
-    $sourceName = $this->getSource();
-
-    // parameter was not found in the list of allowed sources --> invalid
-    if ($sourceName === '')
-    {
-      $valid = false;
-    }
-    else
-    {
-      // validate that the parameter exists in source array
-      $aSource = $this->getSourceArray( $sourceName );
-      $valid = array_key_exists( $this->name, $aSource );
-    }
+    // make sure the param is provided in one of the allowed sources
+    $valid  = $this->provided();
 
     // if the validation passed, validate equality
     if ($valid)
     {
-      $valid = $actionParams[$this->name] === $aSource[$this->name];
+      $valid = $actionParams[$this->name] === $this->getValue();
     }
 
     return $valid;
@@ -155,6 +142,49 @@ class ActionParam extends CComponent
   {
     $aSource  = $this->getSourceArray( $this->getSource() );
     return $aSource[ $this->name ];
+  }
+
+  private function inSource( $sourceName )
+  {
+    $retVal = false;
+
+    switch ($sourceName)
+    {
+    case self::SRC_COOKIE:
+        $retVal = array_key_exists( $this->name, $_COOKIE );
+        break;
+    case self::SRC_ENV:
+        $retVal = array_key_exists( $this->name, $_ENV );
+        break;
+    case self::SRC_FILES:
+        $retVal = array_key_exists( $this->name, $_FILES );
+        break;
+    case self::SRC_GET:
+        $retVal = array_key_exists( $this->name, $_GET );
+        break;
+    case self::SRC_POST:
+        $retVal = array_key_exists( $this->name, $_POST );
+        break;
+    case self::SRC_REQUEST:
+        $retVal = array_key_exists( $this->name, $_REQUEST );
+        break;
+    case self::SRC_SERVER:
+        $retVal = array_key_exists( $this->name, $_SERVER );
+        break;
+    case self::SRC_SESSION:
+        $retVal = array_key_exists( $this->name, $_SESSION );
+        break;
+    case self::SRC_PUT:
+        $retVal = Yii::app()->request->getPut( $this->name ) !== null;
+        break;
+    case self::SRC_DELETE:
+        $retVal = Yii::app()->request->getDelete( $this->name ) !== null;
+        break;
+    default:
+        throw new CException( "Unknown source for action params '{$this->source}'." );
+    }
+
+    return $retVal;
   }
 
   private function getSourceArray( $sourceName )
